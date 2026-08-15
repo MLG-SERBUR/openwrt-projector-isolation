@@ -103,6 +103,7 @@ uci set firewall.reject_dot.src='jail'
 uci set firewall.reject_dot.dest_port='853'
 uci set firewall.reject_dot.proto='tcp udp'
 uci set firewall.reject_dot.target='REJECT'
+uci set firewall.reject_dot.log='1' # Log if the device tries to sneak out via encrypted DNS
 
 # Allow Jail to reach the internet ONLY for IPs in the approved domain list
 uci set firewall.jail_approved=rule
@@ -124,17 +125,20 @@ uci set firewall.spacedesk.dest_port='28252'
 uci set firewall.spacedesk.proto='tcp udp'
 uci set firewall.spacedesk.target='ACCEPT'
 
-# THE FIX: Explicitly reject all other traffic trying to leave the jail to the LAN/Internet.
+# THE FIX: Explicitly log and reject all other traffic trying to leave the jail to the LAN/Internet.
 # Placed AFTER the allow rules. This patches the fw4 `oifname` default reject bypass.
 uci set firewall.jail_reject_all=rule
 uci set firewall.jail_reject_all.name='Reject-All-Unapproved-Jail'
 uci set firewall.jail_reject_all.src='jail'
 uci set firewall.jail_reject_all.dest='lan'
 uci set firewall.jail_reject_all.target='REJECT'
+uci set firewall.jail_reject_all.log='1' # <-- THIS IS WHAT YOU WERE MISSING
+# (Optional) Limit the log so a misbehaving device doesn't crash your router's memory
+uci set firewall.jail_reject_all.log_limit='10/minute' 
 
 echo "8. Creating Placeholder Wi-Fi Network..."
 uci set wireless.jail_wifi=wifi-iface
-uci set wireless.jail_wifi.device='radio0'
+uci set wireless.jail_wifi.device='radio2'
 uci set wireless.jail_wifi.network='jail'
 uci set wireless.jail_wifi.mode='ap'
 uci set wireless.jail_wifi.ssid='projectorwifi'
