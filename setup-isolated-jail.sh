@@ -38,7 +38,8 @@ uci set firewall.jail.name='jail'
 uci set firewall.jail.input='REJECT'
 uci set firewall.jail.output='ACCEPT'
 uci set firewall.jail.forward='REJECT'
-uci set firewall.jail.log='1'
+# Disable default zone logging to stop the DPT=1900 broadcast spam
+uci set firewall.jail.log='0' 
 uci -q delete firewall.jail.network
 uci add_list firewall.jail.network='jail'
 
