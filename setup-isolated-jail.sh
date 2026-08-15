@@ -1,5 +1,21 @@
 cat << 'EOF' > setup-isolated-jail.sh
 #!/bin/sh
+
+# ==========================================
+# CONFIGURATION VARIABLES
+# ==========================================
+WIFI_DEVICE="radio0"
+WIFI_SSID="projectorwifi"
+WIFI_KEY="password"
+WIFI_DISABLED="1"             # Set to '0' to enable Wi-Fi immediately
+
+SPACEDESK_IP="192.168.your.pc.ip"
+SPACEDESK_PORT="28252"
+
+JAIL_IP="192.168.99.1"
+JAIL_SUBNET="192.168.99.0/24"
+# ==========================================
+
 # ---------------------------------------------------------
 # Strictly Isolated Zero-Trust IoT Jail & AdGuard Home
 # Compatible with OpenWrt 25.x (fw4/nftables & apk)
@@ -23,7 +39,7 @@ fi
 echo "2. Creating isolated 'jail' network & DHCP server..."
 uci set network.jail=interface
 uci set network.jail.proto='static'
-uci set network.jail.ipaddr='192.168.99.1'
+uci set network.jail.ipaddr="${JAIL_IP}"
 uci set network.jail.netmask='255.255.255.0'
 
 uci set dhcp.jail=dhcp
@@ -52,7 +68,7 @@ uci -q delete firewall.jail_nat
 uci set firewall.jail_nat=nat
 uci set firewall.jail_nat.name='Masquerade-Jail'
 uci set firewall.jail_nat.src='lan'
-uci set firewall.jail_nat.src_ip='192.168.99.0/24'
+uci set firewall.jail_nat.src_ip="${JAIL_SUBNET}"
 uci set firewall.jail_nat.proto='all'
 uci set firewall.jail_nat.target='MASQUERADE'
 
@@ -78,15 +94,15 @@ uci -q delete dhcp.approved_domains
 uci set dhcp.approved_domains=ipset
 # IMPORTANT: Name must be an add_list in OpenWrt 25.x for proper fw4 rendering
 uci add_list dhcp.approved_domains.name='approved_domains'
-# Base Domains
 uci add_list dhcp.approved_domains.domain='netflix.com'
 uci add_list dhcp.approved_domains.domain='youtube.com'
 uci add_list dhcp.approved_domains.domain='googlevideo.com'
-# App Store & Push Notification Domains
 uci add_list dhcp.approved_domains.domain='mtalk.google.com'
 uci add_list dhcp.approved_domains.domain='google.com'
 uci add_list dhcp.approved_domains.domain='googleapis.com'
 uci add_list dhcp.approved_domains.domain='gstatic.com'
+uci add_list dhcp.approved_domains.domain='time.android.com'
+uci add_list dhcp.approved_domains.domain='pool.ntp.org'
 
 echo "7. Applying Strict Firewall Allow Rules..."
 # Allow Jail to access AdGuard (Port 5353) and DHCP (Port 67)
@@ -121,8 +137,8 @@ uci set firewall.spacedesk=rule
 uci set firewall.spacedesk.name='Allow-Jail-to-PC-Spacedesk'
 uci set firewall.spacedesk.src='jail'
 uci set firewall.spacedesk.dest='lan'
-uci set firewall.spacedesk.dest_ip='192.168.1.X'
-uci set firewall.spacedesk.dest_port='28252'
+uci set firewall.spacedesk.dest_ip="${SPACEDESK_IP}"
+uci set firewall.spacedesk.dest_port="${SPACEDESK_PORT}"
 uci set firewall.spacedesk.proto='tcp udp'
 uci set firewall.spacedesk.target='ACCEPT'
 
@@ -139,13 +155,13 @@ uci set firewall.jail_reject_all.log_limit='10/minute'
 
 echo "8. Creating Placeholder Wi-Fi Network..."
 uci set wireless.jail_wifi=wifi-iface
-uci set wireless.jail_wifi.device='radio2'
+uci set wireless.jail_wifi.device="${WIFI_DEVICE}"
 uci set wireless.jail_wifi.network='jail'
 uci set wireless.jail_wifi.mode='ap'
-uci set wireless.jail_wifi.ssid='projectorwifi'
-uci set wireless.jail_wifi.encryption='psk2'
-uci set wireless.jail_wifi.key='password'
-uci set wireless.jail_wifi.disabled='1'
+uci set wireless.jail_wifi.ssid="${WIFI_SSID}"
+uci set wireless.jail_wifi.encryption='sae'
+uci set wireless.jail_wifi.key="${WIFI_KEY}"
+uci set wireless.jail_wifi.disabled="${WIFI_DISABLED}"
 
 echo "9. Committing changes and restarting services..."
 uci commit
