@@ -78,10 +78,10 @@ uci set firewall.jail_nat.target='MASQUERADE'
 
 # 4b. Inbound: Masquerade traffic entering the jail (Bypasses Android 13 subnet block for ADB/Web)
 uci -q delete firewall.jail_masq
-uci set firewall.jail_masq=nat
-uci set firewall.jail_masq.name='Masquerade-LAN-In'
-uci set firewall.jail_masq.src='jail'
-uci set firewall.jail_masq.target='MASQUERADE'
+# uci set firewall.jail_masq=nat
+# uci set firewall.jail_masq.name='Masquerade-LAN-In'
+# uci set firewall.jail_masq.src='jail'
+# uci set firewall.jail_masq.target='MASQUERADE'
 
 echo "5. Forcing Jail DNS into AdGuard (Targeted Intercept)..."
 uci -q delete firewall.jail_dns_intercept
