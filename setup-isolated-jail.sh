@@ -23,6 +23,7 @@ PROJECTOR_IP="192.168.99.108" # Your Projector's IP Address
 # Strictly Isolated Zero-Trust IoT Jail & AdGuard Home
 # Compatible with OpenWrt 25.x (fw4/nftables & apk)
 # Zero modifications to global LAN or DNSmasq configs
+# Assumes this is a downstream AP (i.e., does not do DHCP)
 # ---------------------------------------------------------
 
 echo "1. Installing AdGuard Home & dnsmasq-full..."
