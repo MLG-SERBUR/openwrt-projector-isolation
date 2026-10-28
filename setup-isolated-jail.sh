@@ -164,6 +164,38 @@ uci set firewall.spacedesk.dest_port="${SPACEDESK_PORT}"
 uci set firewall.spacedesk.proto='tcp udp'
 uci set firewall.spacedesk.target='ACCEPT'
 
+# AIRPLAY: Allow local discovery and streaming to the projector
+uci -q delete firewall.airplay_mdns
+uci set firewall.airplay_mdns=rule
+uci set firewall.airplay_mdns.name='Allow-AirPlay-mDNS'
+uci set firewall.airplay_mdns.src='lan'
+uci set firewall.airplay_mdns.dest='jail'
+uci set firewall.airplay_mdns.dest_ip="${PROJECTOR_IP}"
+uci set firewall.airplay_mdns.proto='udp'
+uci set firewall.airplay_mdns.dest_port='5353'
+uci set firewall.airplay_mdns.target='ACCEPT'
+
+uci -q delete firewall.airplay_stream
+uci set firewall.airplay_stream=rule
+uci set firewall.airplay_stream.name='Allow-AirPlay-Stream'
+uci set firewall.airplay_stream.src='lan'
+uci set firewall.airplay_stream.dest='jail'
+uci set firewall.airplay_stream.dest_ip="${PROJECTOR_IP}"
+uci set firewall.airplay_stream.proto='tcp udp'
+uci set firewall.airplay_stream.dest_port='7000 7001 7100 49152-65535'
+uci set firewall.airplay_stream.target='ACCEPT'
+
+# NOTE: if discovery still fails, also allow multicast mDNS to 224.0.0.251:5353
+# uci -q delete firewall.airplay_mdns_multicast
+# uci set firewall.airplay_mdns_multicast=rule
+# uci set firewall.airplay_mdns_multicast.name='Allow-AirPlay-mDNS-Multicast'
+# uci set firewall.airplay_mdns_multicast.src='lan'
+# uci set firewall.airplay_mdns_multicast.dest='jail'
+# uci set firewall.airplay_mdns_multicast.proto='udp'
+# uci set firewall.airplay_mdns_multicast.dest_ip='224.0.0.251'
+# uci set firewall.airplay_mdns_multicast.dest_port='5353'
+# uci set firewall.airplay_mdns_multicast.target='ACCEPT'
+
 # Forwarding: Allow LAN zone to forward traffic into Jail zone
 uci -q delete firewall.lan_to_jail
 uci set firewall.lan_to_jail=forwarding
