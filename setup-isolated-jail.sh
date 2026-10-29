@@ -182,19 +182,68 @@ uci set firewall.airplay_stream.src='lan'
 uci set firewall.airplay_stream.dest='jail'
 uci set firewall.airplay_stream.dest_ip="${PROJECTOR_IP}"
 uci set firewall.airplay_stream.proto='tcp udp'
-uci set firewall.airplay_stream.dest_port='7000 7001 7100 49152-65535'
+uci set firewall.airplay_stream.dest_port='5000 554 6000 7000 7001 7010 7011 7100 47000 49152-65535'
 uci set firewall.airplay_stream.target='ACCEPT'
 
-# NOTE: if discovery still fails, also allow multicast mDNS to 224.0.0.251:5353
-# uci -q delete firewall.airplay_mdns_multicast
-# uci set firewall.airplay_mdns_multicast=rule
-# uci set firewall.airplay_mdns_multicast.name='Allow-AirPlay-mDNS-Multicast'
-# uci set firewall.airplay_mdns_multicast.src='lan'
-# uci set firewall.airplay_mdns_multicast.dest='jail'
-# uci set firewall.airplay_mdns_multicast.proto='udp'
-# uci set firewall.airplay_mdns_multicast.dest_ip='224.0.0.251'
-# uci set firewall.airplay_mdns_multicast.dest_port='5353'
-# uci set firewall.airplay_mdns_multicast.target='ACCEPT'
+# AIRPLAY REFLECTOR: mDNS multicast (224.0.0.251:5353, TTL 1) does not
+# cross subnets on its own. The unicast rules above do not deliver it.
+# avahi-daemon on this AP reflects mDNS between lan and jail only.
+# No WAN interface exists on this downstream AP, and no allow-interfaces
+# value is pinned here: pin it to the `ip link` names for lan/jail only
+# if other interfaces ever appear. This reflects ALL mDNS services, not
+# just _airplay._tcp/_raop._tcp; avahi reflector has no per-service filter.
+# It opens no unicast jail -> lan forwarding: it is mDNS-only, router-mediated.
+# RISK, verify on live box: AdGuard in this script also uses port 5353
+# for DNS. If avahi fails to bind IPv4 5353, check `logread -e avahi` and
+# `ss -ulnp | grep 5353` before changing any port; do not move AdGuard
+# blindly, that breaks the jail DNS intercept above.
+if command -v apk >/dev/null 2>&1; then
+    apk update
+    apk add avahi-dbus-daemon dbus
+else
+    opkg update
+    opkg install avahi-dbus-daemon dbus
+fi
+cat > /etc/avahi/avahi-daemon.conf << 'AVAHI_EOF'
+[server]
+use-ipv4=yes
+use-ipv6=no
+check-response-ttl=no
+use-iff-running=no
+[publish]
+publish-addresses=yes
+publish-hinfo=no
+publish-workstation=no
+publish-domain=yes
+[reflector]
+enable-reflector=yes
+reflect-ipv=no
+AVAHI_EOF
+/etc/init.d/dbus enable
+/etc/init.d/dbus start
+/etc/init.d/avahi-daemon enable
+/etc/init.d/avahi-daemon restart
+
+# Allow router to receive mDNS multicast from lan and jail (input to
+# avahi-daemon itself, not forwarding). jail_local above already allows
+# jail -> router unicast 5353; this covers the multicast address.
+uci -q delete firewall.mdns_input_lan
+uci set firewall.mdns_input_lan=rule
+uci set firewall.mdns_input_lan.name='Allow-mDNS-Input-LAN'
+uci set firewall.mdns_input_lan.src='lan'
+uci set firewall.mdns_input_lan.proto='udp'
+uci set firewall.mdns_input_lan.dest_ip='224.0.0.251'
+uci set firewall.mdns_input_lan.dest_port='5353'
+uci set firewall.mdns_input_lan.target='ACCEPT'
+
+uci -q delete firewall.mdns_input_jail
+uci set firewall.mdns_input_jail=rule
+uci set firewall.mdns_input_jail.name='Allow-mDNS-Input-Jail'
+uci set firewall.mdns_input_jail.src='jail'
+uci set firewall.mdns_input_jail.proto='udp'
+uci set firewall.mdns_input_jail.dest_ip='224.0.0.251'
+uci set firewall.mdns_input_jail.dest_port='5353'
+uci set firewall.mdns_input_jail.target='ACCEPT'
 
 # Forwarding: Allow LAN zone to forward traffic into Jail zone
 uci -q delete firewall.lan_to_jail
